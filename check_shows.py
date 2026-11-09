@@ -37,16 +37,24 @@ def parse_shows(page):
 
 
 def send_email(subject, body):
-    user = os.environ["GMAIL_USER"]
-    password = os.environ["GMAIL_APP_PASSWORD"]
-    to = os.environ.get("ALERT_TO", user)
+    user = os.environ.get("GMAIL_USER", "").strip()
+    password = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "")
+    missing = [n for n, v in (("GMAIL_USER", user), ("GMAIL_APP_PASSWORD", password)) if not v]
+    if missing:
+        sys.exit(f"ERROR: missing GitHub secret(s): {', '.join(missing)}. "
+                 "Check the names in Settings > Secrets and variables > Actions.")
+    to = os.environ.get("ALERT_TO", "").strip() or user
     msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = subject
     msg["From"] = user
     msg["To"] = to
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-        smtp.login(user, password)
-        smtp.send_message(msg)
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+            smtp.login(user, password)
+            smtp.send_message(msg)
+    except smtplib.SMTPAuthenticationError as e:
+        sys.exit(f"ERROR: Gmail rejected the login for {user}: {e}. "
+                 "Make sure GMAIL_APP_PASSWORD is a 16-character App Password, not your normal password.")
 
 
 def describe(show):
