@@ -61,8 +61,8 @@ def send_email(subject, body):
     msg["From"] = user
     msg["To"] = to
     errors = []
-    # Port 465 (SSL) first, then 587 (STARTTLS): some servers block one of them.
-    for port in (465, 587):
+    # Port 587 (STARTTLS) first, then 465 (SSL): some servers block one of them.
+    for port in (587, 465):
         try:
             if port == 465:
                 smtp = smtplib.SMTP_SSL("smtp.gmail.com", port, timeout=30)
