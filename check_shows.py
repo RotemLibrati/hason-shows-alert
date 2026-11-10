@@ -60,13 +60,26 @@ def send_email(subject, body):
     msg["Subject"] = subject
     msg["From"] = user
     msg["To"] = to
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-            smtp.login(user, password)
-            smtp.send_message(msg)
-    except smtplib.SMTPAuthenticationError as e:
-        raise RuntimeError(f"Gmail rejected the login for {user}: {e}. "
-                           "Make sure GMAIL_APP_PASSWORD is a 16-character App Password.") from e
+    errors = []
+    # Port 465 (SSL) first, then 587 (STARTTLS): some servers block one of them.
+    for port in (465, 587):
+        try:
+            if port == 465:
+                smtp = smtplib.SMTP_SSL("smtp.gmail.com", port, timeout=30)
+            else:
+                smtp = smtplib.SMTP("smtp.gmail.com", port, timeout=30)
+                smtp.starttls()
+            with smtp:
+                smtp.login(user, password)
+                smtp.send_message(msg)
+            return
+        except smtplib.SMTPAuthenticationError as e:
+            raise RuntimeError(f"Gmail rejected the login for {user}: {e}. "
+                               "Make sure GMAIL_APP_PASSWORD is a 16-character App Password.") from e
+        except OSError as e:
+            errors.append(f"port {port}: {type(e).__name__}: {e}")
+    raise RuntimeError("Could not connect to smtp.gmail.com (" + "; ".join(errors) + "). "
+                       "The server's provider may block outgoing email ports.")
 
 
 def describe(show):
