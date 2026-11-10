@@ -24,3 +24,20 @@
    - בלשונית Actions בוחרים את "Check Shahar Hason shows" ולוחצים Run workflow.
 
 אם האתר ישנה את המבנה שלו והסקריפט לא ימצא הופעות, ההרצה תיכשל ו-GitHub ישלח על זה מייל.
+
+## הרצה על שרת (במקום GitHub Actions)
+
+צריך שרת Linux עם Python 3.9 ומעלה ו-git.
+
+```bash
+git clone https://github.com/RotemLibrati/hason-shows-alert.git ~/hason-shows-alert
+cd ~/hason-shows-alert
+cp .env.example .env
+nano .env        # ממלאים כתובת Gmail, App Password, ו-STATE_DIR (למשל /home/<user>/hason-data)
+chmod 600 .env
+./run.sh && cat "$(grep STATE_DIR .env | cut -d= -f2)/cron.log"   # בדיקה ידנית
+crontab -e       # מוסיפים את השורה:  0 * * * * $HOME/hason-shows-alert/run.sh
+```
+
+- הקבצים `seen_shows.json`, `run_log.json` ו-`cron.log` נשמרים בתיקיית `STATE_DIR`, מחוץ לקוד, כך ש-`git pull` לעדכון קוד לא מתנגש איתם.
+- אחרי שהשרת עובד, מכבים את ההרצה ב-GitHub (Actions → Check Shahar Hason shows → `...` → Disable workflow), אחרת יגיעו מיילים כפולים.

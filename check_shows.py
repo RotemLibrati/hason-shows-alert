@@ -17,8 +17,10 @@ from zoneinfo import ZoneInfo
 
 PAGE_URL = "https://comedybar.net/%D7%A9%D7%97%D7%A8-%D7%97%D7%A1%D7%95%D7%9F-%D7%94%D7%95%D7%A4%D7%A2%D7%95%D7%AA/"
 HERE = Path(__file__).parent
-STATE_FILE = HERE / "seen_shows.json"
-LOG_FILE = HERE / "run_log.json"
+# On a server, keep state outside the git checkout so `git pull` never conflicts.
+STATE_DIR = Path(os.environ.get("STATE_DIR") or HERE)
+STATE_FILE = STATE_DIR / "seen_shows.json"
+LOG_FILE = STATE_DIR / "run_log.json"
 TZ = ZoneInfo("Asia/Jerusalem")
 SUMMARY_HOUR = 20
 
