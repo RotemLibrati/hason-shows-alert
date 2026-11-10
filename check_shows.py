@@ -10,7 +10,7 @@ import re
 import smtplib
 import sys
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -137,6 +137,25 @@ def build_summary(checks, now):
     return subject, "\n".join(lines)
 
 
+def summary_due(log, now):
+    """True if a SUMMARY_HOUR deadline has passed since the last summary.
+
+    GitHub often delays or skips scheduled runs, so the summary is sent by the
+    first run after the deadline, even if that run happens after midnight.
+    """
+    deadline = now.replace(hour=SUMMARY_HOUR, minute=0, second=0, microsecond=0)
+    if now < deadline:
+        deadline -= timedelta(days=1)
+    last = log.get("last_summary")
+    if last is None:
+        # Never sent: start counting from the first logged check.
+        last = log["checks"][0]["time"]
+    elif len(last) == 10:
+        # Old format: a plain date means a summary was sent that evening.
+        last += f"T{SUMMARY_HOUR:02d}:00:00+02:00"
+    return datetime.fromisoformat(last) < deadline
+
+
 def main():
     now = datetime.now(TZ)
     log = load_json(LOG_FILE, {"last_summary": None, "checks": []})
@@ -150,13 +169,12 @@ def main():
     entry["time"] = now.isoformat(timespec="seconds")
     log["checks"].append(entry)
 
-    today = now.date().isoformat()
-    if now.hour >= SUMMARY_HOUR and log["last_summary"] != today:
+    if summary_due(log, now):
         subject, body = build_summary(log["checks"], now)
         try:
             send_email(subject, body)
             print("Daily summary sent.")
-            log["last_summary"] = today
+            log["last_summary"] = now.isoformat(timespec="seconds")
             log["checks"] = []
         except Exception as e:
             # Keep the log so the summary is retried on the next run.
