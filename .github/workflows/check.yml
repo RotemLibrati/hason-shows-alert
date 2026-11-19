@@ -1,9 +1,9 @@
 name: Check Shahar Hason shows
 
 on:
-  schedule:
-    # Every hour. The daily summary is sent by the first run after 20:00 Israel time.
-    - cron: "3 * * * *"
+  # Scheduled runs turned off. To turn back on, add:
+  #   schedule:
+  #     - cron: "3 * * * *"
   workflow_dispatch: {}  # lets you run it manually from the Actions tab
 
 permissions:
